@@ -1,0 +1,6 @@
+[
+    {
+        "command": "lsp_rust_implementations",
+        "caption": "Find Implementations"
+    }
+]
