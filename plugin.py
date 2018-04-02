@@ -41,7 +41,6 @@ class LspRlsPlugin(LanguageHandler):
     def __init__(self):
         self._name = config_name
         self._config = rls_config
-        pass
 
     @property
     def name(self) -> str:
