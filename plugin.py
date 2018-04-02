@@ -1,17 +1,65 @@
 import os
+import shutil
 import sublime_plugin
 import sublime
-from LSP.plugin.core.main import register_client_initialization_listener
+from LSP.plugin.core.handlers import LanguageHandler
+from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.protocol import Request, Point
-
-
 from LSP.plugin.references import ensure_references_panel
-
 from LSP.plugin.core.clients import client_for_view
 from LSP.plugin.core.documents import is_at_word, get_position, get_document_position
 from LSP.plugin.core.configurations import is_supported_view
 from LSP.plugin.core.workspace import get_project_path
 from LSP.plugin.core.url import uri_to_filename
+
+
+config_name = 'rls'
+server_name = 'rls'
+rls_config = ClientConfig(
+    name=config_name,
+    binary_args=[
+        "rustup", "run", "nightly", "rls"
+    ],
+    tcp_port=None,
+    scopes=["source.rust"],
+    syntaxes=[
+       "Packages/Rust/Rust.sublime-syntax",
+       "Packages/Rust Enhanced/RustEnhanced.sublime-syntax"
+    ],
+    languageId='rust',
+    enabled=False,
+    init_options=dict(),
+    settings=dict(),
+    env=dict())
+
+
+def rustup_is_installed() -> bool:
+    return shutil.which("rustup") is not None
+
+
+class LspRlsPlugin(LanguageHandler):
+    def __init__(self):
+        self._name = config_name
+        self._config = rls_config
+        pass
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def config(self) -> ClientConfig:
+        return self._config
+
+    def on_start(self, window) -> bool:
+        if not rustup_is_installed():
+            window.status_message(
+                "Rustup must be installed to run {}".format(server_name))
+            return False
+        return True
+
+    def on_initialized(self, client) -> None:
+        register_client(client)
 
 
 class LspRustImplementationsCommand(sublime_plugin.TextCommand):
@@ -60,7 +108,7 @@ class LspRustImplementationsCommand(sublime_plugin.TextCommand):
 
         else:
             window.run_command("hide_panel", {"panel": "output.references"})
-            window.status_message("No references found")
+            window.status_message("No implementations found")
 
     def want_event(self):
         return True
@@ -79,9 +127,6 @@ class RustRequest(Request):
         return Request("rustDocument/implementations", params)
 
 
-# plugin hooks
-
-
 def register_client(client):
     print("received client")
     client.on_notification(
@@ -98,7 +143,6 @@ def register_client(client):
 def on_begin_build(params):
     print("rustDocument/beginBuild")
     sublime.status_message("Rust build started...")
-    # sublime.message_dialog(params.get("message"))
 
 
 def on_diagnostics_begin(params):
@@ -109,12 +153,3 @@ def on_diagnostics_begin(params):
 def on_diagnostics_end(params):
     print("rustDocument/diagnosticsEnd")
     sublime.status_message("Rust diagnostics done.")
-
-
-def plugin_loaded():
-    print("loaded")
-    register_client_initialization_listener('rls', lambda client: register_client(client))
-
-
-def plugin_unloaded():
-    pass
