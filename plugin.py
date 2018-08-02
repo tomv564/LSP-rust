@@ -6,9 +6,8 @@ from LSP.plugin.core.handlers import LanguageHandler
 from LSP.plugin.core.settings import ClientConfig
 from LSP.plugin.core.protocol import Request, Point
 from LSP.plugin.references import ensure_references_panel
-from LSP.plugin.core.clients import client_for_view
+from LSP.plugin.core.registry import session_for_view
 from LSP.plugin.core.documents import is_at_word, get_position, get_document_position
-from LSP.plugin.core.configurations import is_supported_view
 from LSP.plugin.core.workspace import get_project_path
 from LSP.plugin.core.url import uri_to_filename
 
@@ -63,20 +62,19 @@ class LspRlsPlugin(LanguageHandler):
 
 class LspRustImplementationsCommand(sublime_plugin.TextCommand):
     def is_enabled(self, event=None):
-        if is_supported_view(self.view):
-            client = client_for_view(self.view)
-            if client and client.has_capability('referencesProvider'):
-                return is_at_word(self.view, event)
+        session = session_for_view(self.view)
+        if session and session.has_capability('implementationProvider'):
+            return is_at_word(self.view, event)
         return False
 
     def run(self, edit, event=None):
-        client = client_for_view(self.view)
-        if client:
+        session = session_for_view(self.view)
+        if session and session.client:
             pos = get_position(self.view, event)
             document_position = get_document_position(self.view, pos)
             if document_position:
                 request = RustRequest.implementations(document_position)
-                client.send_request(
+                session.client.send_request(
                     request, lambda response: self.handle_response(response, pos))
 
     def handle_response(self, response, pos):
