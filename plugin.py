@@ -3,7 +3,7 @@ import shutil
 import sublime_plugin
 import sublime
 from LSP.plugin.core.handlers import LanguageHandler
-from LSP.plugin.core.settings import ClientConfig
+from LSP.plugin.core.settings import ClientConfig, LanguageConfig
 from LSP.plugin.core.protocol import Request, Point
 from LSP.plugin.references import ensure_references_panel
 from LSP.plugin.core.registry import session_for_view
@@ -20,12 +20,9 @@ rls_config = ClientConfig(
         "rustup", "run", "nightly", "rls"
     ],
     tcp_port=None,
-    scopes=["source.rust"],
-    syntaxes=[
-       "Packages/Rust/Rust.sublime-syntax",
-       "Packages/Rust Enhanced/RustEnhanced.sublime-syntax"
+    languages=[
+        LanguageConfig("rust", ["source.rust"], ["Rust"])
     ],
-    languageId='rust',
     enabled=False,
     init_options=dict(),
     settings=dict(),
